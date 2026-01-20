@@ -1,4 +1,5 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -138,6 +139,16 @@ def open_file(data: dict):
         return {"status": "opened", "path": file_path}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+# Middleware to disable browser caching for frontend files
+@app.middleware("http")
+async def add_no_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    # Disable cache for HTML, JS, CSS files
+    if request.url.path.endswith(('.html', '.js', '.css')) or request.url.path == '/':
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 # Mount frontend as the last step to catch all other routes
 # Ensure the directory exists or this will fail
