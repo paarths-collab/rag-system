@@ -6,6 +6,7 @@ let supabase = null;
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
     initNavigation();
+    initFileUpload();
     initDropZone();
     fetchDocumentStats();
     checkHealth();
@@ -226,19 +227,31 @@ async function ingest() {
 }
 
 // Ingest File
+// File Upload
+function initFileUpload() {
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                ingestFile();
+            }
+        });
+    }
+}
+
 async function ingestFile() {
     const fileInput = document.getElementById("fileInput");
     const file = fileInput.files[0];
 
-    if (!file) {
-        showToast("Please select a file first", "warning");
-        return;
-    }
+    if (!file) return;
 
-    const btn = document.getElementById("uploadBtn");
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = '<span>Uploading...</span>';
-    btn.disabled = true;
+    // UI Feedback
+    const fileBtn = document.getElementById("fileBtn");
+    const fileName = document.getElementById("fileName");
+    const originalText = fileName.textContent;
+
+    fileName.textContent = 'Uploading...';
+    if (fileBtn) fileBtn.classList.add('attached');
 
     const formData = new FormData();
     formData.append("file", file);
@@ -249,19 +262,26 @@ async function ingestFile() {
             body: formData
         });
         const data = await res.json();
+
         if (data.status === "skipped") {
-            showToast(`"${data.filename}" was already uploaded. Skipping duplicate.`, "warning");
+            showToast(`"${data.filename}" was already uploaded.`, "warning");
         } else {
             showToast(`Successfully ingested "${data.filename}" (${data.chunks} chunks)!`, "success");
             fetchDocumentStats();
         }
+
+        // Reset input
         fileInput.value = "";
-        document.getElementById('fileName').textContent = "";
+        fileName.textContent = "Attach PDF or TXT";
+        if (fileBtn) fileBtn.classList.remove('attached');
+
     } catch (err) {
         showToast("Error uploading file: " + err.message, "error");
-    } finally {
-        btn.innerHTML = originalHTML;
-        btn.disabled = false;
+        fileName.textContent = "Error";
+        setTimeout(() => {
+            fileName.textContent = "Attach PDF or TXT";
+            if (fileBtn) fileBtn.classList.remove('attached');
+        }, 2000);
     }
 }
 
