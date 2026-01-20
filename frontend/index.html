@@ -779,104 +779,101 @@
 </head>
 
 <body>
-
-    <body>
-        <div id="galaxy-container"></div>
-        <header class="header">
-            <div class="logo">
-                <span class="shiny-text">Rag System</span>
-            </div>
-            <div class="header-right">
-                <div class="stats-badge" id="statsBadge">
-                    <div class="stat-item">
-                        <span class="stat-value" id="docCount">0</span>
-                        <span>docs</span>
-                    </div>
-                    <div class="stat-divider"></div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="chunkCount">0</span>
-                        <span>chunks</span>
-                    </div>
+    <div id="galaxy-container"></div>
+    <header class="header">
+        <div class="logo">
+            <span class="shiny-text">Rag System</span>
+        </div>
+        <div class="header-right">
+            <div class="stats-badge" id="statsBadge">
+                <div class="stat-item">
+                    <span class="stat-value" id="docCount">0</span>
+                    <span>docs</span>
                 </div>
-                <div class="status-badge">
-                    <span class="status-dot" id="statusDot"></span>
-                    <span id="statusText">Connecting...</span>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <span class="stat-value" id="chunkCount">0</span>
+                    <span>chunks</span>
                 </div>
             </div>
+            <div class="status-badge">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Connecting...</span>
             </div>
-        </header>
+        </div>
+        </div>
+    </header>
 
-        <main class="main">
-            <div class="messages" id="messages">
-                <div class="welcome" id="welcome">
-                    <h2>Ask Your Documents</h2>
-                    <p>Upload files or paste text to build your knowledge base, then ask questions powered by AI.</p>
-                    <div class="steps">
-                        <div class="step">
-                            <div class="step-number">1</div>
-                            <div class="step-text">Upload a PDF/TXT or paste text</div>
-                        </div>
-                        <div class="step">
-                            <div class="step-number">2</div>
-                            <div class="step-text">AI breaks into searchable chunks</div>
-                        </div>
-                        <div class="step">
-                            <div class="step-number">3</div>
-                            <div class="step-text">Ask anything, get cited answers</div>
-                        </div>
+    <main class="main">
+        <div class="messages" id="messages">
+            <div class="welcome" id="welcome">
+                <h2>Ask Your Documents</h2>
+                <p>Upload files or paste text to build your knowledge base, then ask questions powered by AI.</p>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-text">Upload a PDF/TXT or paste text</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-text">AI breaks into searchable chunks</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-text">Ask anything, get cited answers</div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="typing" id="typing">
-                <span></span>
-                <span></span>
-                <span></span>
+        <div class="typing" id="typing">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <div class="input-area">
+            <div class="file-row">
+                <label class="file-btn" id="fileBtn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                    <span id="fileName">Attach PDF or TXT</span>
+                    <input type="file" id="fileInput" accept=".pdf,.txt">
+                </label>
+                <button class="text-toggle" id="textToggle" onclick="toggleTextInput()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    <span>Paste text</span>
+                </button>
             </div>
 
-            <div class="input-area">
-                <div class="file-row">
-                    <label class="file-btn" id="fileBtn">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                        </svg>
-                        <span id="fileName">Attach PDF or TXT</span>
-                        <input type="file" id="fileInput" accept=".pdf,.txt">
-                    </label>
-                    <button class="text-toggle" id="textToggle" onclick="toggleTextInput()">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        <span>Paste text</span>
-                    </button>
-                </div>
-
-                <div class="text-input-area" id="textInputArea">
-                    <textarea id="textContent"
-                        placeholder="Paste your content here to add to knowledge base..."></textarea>
-                    <button class="ingest-btn" onclick="ingestText()">Add to Knowledge Base</button>
-                </div>
-
-                <div class="input-row">
-                    <div class="input-wrapper">
-                        <input type="text" class="query-input" id="query"
-                            placeholder="Ask anything about your documents..." />
-                    </div>
-                    <button class="send-btn" id="sendBtn" onclick="ask()">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M5 12h14M12 5l7 7-7 7" />
-                        </svg>
-                    </button>
-                </div>
+            <div class="text-input-area" id="textInputArea">
+                <textarea id="textContent" placeholder="Paste your content here to add to knowledge base..."></textarea>
+                <button class="ingest-btn" onclick="ingestText()">Add to Knowledge Base</button>
             </div>
-        </main>
 
-        <script src="script.js"></script>
+            <div class="input-row">
+                <div class="input-wrapper">
+                    <input type="text" class="query-input" id="query"
+                        placeholder="Ask anything about your documents..." />
+                </div>
+                <button class="send-btn" id="sendBtn" onclick="ask()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
 
 
-    </body>
+</body>
 
 </html>

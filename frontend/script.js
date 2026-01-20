@@ -1,291 +1,55 @@
 // Environment-aware API configuration
-const API = ''; // Relative path fits all same-origin deployments (localhost & production)
+const API = ''; // Relative path - works for same-origin deployments
 
-let supabase = null;
-
-// Initialize app
-document.addEventListener('DOMContentLoaded', async () => {
-    initNavigation();
+// Initialize app when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
     initFileUpload();
-    initDropZone();
-    fetchDocumentStats();
+    initQueryInput();
     checkHealth();
-    setInterval(checkHealth, 30000); // Poll every 30 seconds
+    fetchStats();
+    setInterval(checkHealth, 30000);
 });
 
-// Toast Notification
-function showToast(message, type = "info") {
-    // Remove existing toast
-    const existing = document.querySelector('.toast');
-    if (existing) existing.remove();
-
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.innerHTML = `
-        <span>${message}</span>
-        <button onclick="this.parentElement.remove()">×</button>
-    `;
-
-    // Add styles if not present
-    if (!document.getElementById('toast-styles')) {
-        const style = document.createElement('style');
-        style.id = 'toast-styles';
-        style.textContent = `
-            .toast {
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                padding: 12px 20px;
-                border-radius: 8px;
-                color: white;
-                font-size: 14px;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                z-index: 9999;
-                animation: slideIn 0.3s ease;
-                max-width: 400px;
-            }
-            .toast-success { background: #10b981; }
-            .toast-error { background: #ef4444; }
-            .toast-warning { background: #f59e0b; }
-            .toast-info { background: #3b82f6; }
-            .toast button {
-                background: none;
-                border: none;
-                color: white;
-                font-size: 18px;
-                cursor: pointer;
-                padding: 0;
-                margin-left: 8px;
-            }
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
-}
-
-
-
-
-// Navigation
-function initNavigation() {
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            const section = item.dataset.section;
-            switchSection(section);
-        });
-    });
-}
-
-// Health Check
+// ============ HEALTH CHECK ============
 async function checkHealth() {
     const dot = document.getElementById('statusDot');
     const text = document.getElementById('statusText');
 
+    if (!dot || !text) return;
+
     try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
-
-        const res = await fetch(`${API}/health`, {
-            signal: controller.signal,
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
-
-        clearTimeout(timeoutId);
-
+        const res = await fetch(`${API}/health`);
         if (res.ok) {
-            dot.className = 'status-dot online';
+            dot.classList.add('online');
+            dot.classList.remove('offline');
             text.textContent = 'Online';
-            console.log('Backend is online');
         } else {
-            throw new Error(`HTTP ${res.status}`);
+            throw new Error('Not OK');
         }
     } catch (e) {
-        console.error('Health check failed:', e);
-        dot.className = 'status-dot offline';
-
-        if (e.name === 'AbortError') {
-            text.textContent = 'Timeout';
-        } else if (e.message.includes('Failed to fetch')) {
-            text.textContent = 'Connection Failed';
-        } else {
-            text.textContent = 'Offline';
-        }
+        dot.classList.add('offline');
+        dot.classList.remove('online');
+        text.textContent = 'Offline';
     }
 }
 
-function switchSection(section) {
-    currentSection = section;
-
-    // Update nav items
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.toggle('active', item.dataset.section === section);
-    });
-
-    // Update sections
-    document.querySelectorAll('.section').forEach(sec => {
-        sec.classList.remove('active');
-    });
-    document.getElementById(`${section}-section`).classList.add('active');
-
-    // Update header
-    const titles = {
-        chat: { title: 'AI Chat', subtitle: 'Ask questions about your documents' },
-        upload: { title: 'Upload Documents', subtitle: 'Add files or paste text to your knowledge base' },
-        documents: { title: 'Documents', subtitle: 'View your ingested documents' }
-    };
-
-    document.getElementById('page-title').textContent = titles[section].title;
-    document.querySelector('.subtitle').textContent = titles[section].subtitle;
-
-    if (section === 'documents') {
-        fetchDocumentStats();
-    }
-}
-
-// Stats
-async function fetchDocumentStats() {
+// ============ STATS ============
+async function fetchStats() {
     try {
         const res = await fetch(`${API}/stats`);
         if (res.ok) {
             const data = await res.json();
-            documentStats = data;
-            document.getElementById('doc-count').textContent = data.docs || 0;
-            document.getElementById('chunk-count').textContent = data.chunks || 0;
+            const docEl = document.getElementById('docCount');
+            const chunkEl = document.getElementById('chunkCount');
+            if (docEl) docEl.textContent = data.docs || 0;
+            if (chunkEl) chunkEl.textContent = data.chunks || 0;
         }
-    } catch (err) {
-        // Stats endpoint may not exist, ignore
+    } catch (e) {
+        console.log('Stats fetch failed:', e);
     }
 }
 
-// Drop Zone
-function initDropZone() {
-    const dropZone = document.getElementById('dropZone');
-    if (!dropZone) return;
-
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, preventDefaults);
-    });
-
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'));
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'));
-    });
-
-    dropZone.addEventListener('drop', handleDrop);
-}
-
-function preventDefaults(e) {
-    e.preventDefault();
-    e.stopPropagation();
-}
-
-function handleDrop(e) {
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-        document.getElementById('fileInput').files = files;
-        handleFileSelect();
-    }
-}
-
-function handleFileSelect() {
-    const fileInput = document.getElementById('fileInput');
-    const fileName = document.getElementById('fileName');
-    if (fileInput.files.length > 0) {
-        fileName.textContent = `Selected: ${fileInput.files[0].name}`;
-    }
-}
-
-// Handle Enter key in input
-function handleKeyPress(event) {
-    if (event.key === "Enter") {
-        ask();
-    }
-}
-
-// Toast Notifications
-function showToast(message, type = 'success') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-
-    const icons = {
-        success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></svg>',
-        error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
-        warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
-    };
-
-    toast.innerHTML = `
-        <div class="toast-icon">${icons[type]}</div>
-        <span class="toast-message">${message}</span>
-    `;
-
-    container.appendChild(toast);
-
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(100%)';
-        setTimeout(() => toast.remove(), 300);
-    }, 4000);
-}
-
-// Sources Panel
-function toggleSourcesPanel() {
-    const panel = document.getElementById('sources-panel');
-    panel.classList.toggle('open');
-}
-
-// Ingest Text
-async function ingest() {
-    const textObj = document.getElementById("text");
-    const text = textObj.value;
-    if (!text) {
-        showToast("Please enter text to ingest", "warning");
-        return;
-    }
-
-    const btn = event.target.closest('.btn');
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = '<span>Processing...</span>';
-    btn.disabled = true;
-
-    try {
-        const res = await fetch(`${API}/ingest`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text, source: "user-input" })
-        });
-        const data = await res.json();
-        if (data.status === "skipped") {
-            showToast("This text was already uploaded. Skipping duplicate.", "warning");
-        } else {
-            showToast(`Successfully ingested ${data.chunks} chunks!`, "success");
-            fetchDocumentStats();
-        }
-        textObj.value = "";
-    } catch (err) {
-        showToast("Error ingesting text: " + err.message, "error");
-    } finally {
-        btn.innerHTML = originalHTML;
-        btn.disabled = false;
-    }
-}
-
-// Ingest File
-// File Upload
+// ============ FILE UPLOAD ============
 function initFileUpload() {
     const fileInput = document.getElementById('fileInput');
     if (fileInput) {
@@ -298,172 +62,245 @@ function initFileUpload() {
 }
 
 async function ingestFile() {
-    const fileInput = document.getElementById("fileInput");
+    const fileInput = document.getElementById('fileInput');
+    const fileName = document.getElementById('fileName');
+    const fileBtn = document.getElementById('fileBtn');
+
+    if (!fileInput || !fileInput.files[0]) return;
+
     const file = fileInput.files[0];
 
-    if (!file) return;
-
-    // UI Feedback
-    const fileBtn = document.getElementById("fileBtn");
-    const fileName = document.getElementById("fileName");
-
-    fileName.textContent = 'Uploading...';
+    // Show uploading state
+    if (fileName) fileName.textContent = 'Uploading...';
     if (fileBtn) fileBtn.classList.add('attached');
 
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append('file', file);
 
     try {
         const res = await fetch(`${API}/ingest-file`, {
-            method: "POST",
+            method: 'POST',
             body: formData
         });
         const data = await res.json();
 
-        if (data.status === "skipped") {
-            showToast(`"${data.filename}" was already uploaded.`, "warning");
+        if (data.status === 'skipped') {
+            showToast(`"${data.filename}" was already uploaded.`, 'warning');
         } else {
-            showToast(`Successfully ingested "${data.filename}" (${data.chunks} chunks)!`, "success");
-            fetchDocumentStats();
+            showToast(`Uploaded "${data.filename}" (${data.chunks} chunks)`, 'success');
+            fetchStats();
         }
     } catch (err) {
-        console.error("Upload error:", err);
-        try {
-            showToast("Error uploading file: " + err.message, "error");
-        } catch (e) {
-            // showToast itself failed, just log
-            console.error("Toast failed:", e);
-        }
+        showToast('Upload failed: ' + err.message, 'error');
     } finally {
-        // ALWAYS reset UI no matter what
-        fileInput.value = "";
-        fileName.textContent = "Attach PDF or TXT";
+        // Reset UI
+        if (fileInput) fileInput.value = '';
+        if (fileName) fileName.textContent = 'Attach PDF or TXT';
         if (fileBtn) fileBtn.classList.remove('attached');
     }
 }
 
-// Ask Question
-async function ask() {
-    const queryObj = document.getElementById("query");
-    const query = queryObj.value.trim();
-    if (!query) {
-        showToast("Please enter a question", "warning");
+// ============ TEXT INPUT ============
+function toggleTextInput() {
+    const area = document.getElementById('textInputArea');
+    const toggle = document.getElementById('textToggle');
+    if (area) area.classList.toggle('visible');
+    if (toggle) toggle.classList.toggle('active');
+}
+
+async function ingestText() {
+    const textArea = document.getElementById('textContent');
+    if (!textArea) return;
+
+    const text = textArea.value.trim();
+    if (!text) {
+        showToast('Please enter some text', 'warning');
         return;
     }
 
-    const chatMessages = document.getElementById("chat-messages");
-    const sourcesContainer = document.getElementById("sources");
+    try {
+        const res = await fetch(`${API}/ingest`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, source: 'pasted-text' })
+        });
+        const data = await res.json();
 
-    // Clear welcome message if present
-    const welcomeMsg = chatMessages.querySelector('.welcome-message');
-    if (welcomeMsg) welcomeMsg.remove();
+        if (data.status === 'skipped') {
+            showToast('This text was already in your knowledge base.', 'warning');
+        } else {
+            showToast(`Added ${data.chunks} chunks to knowledge base`, 'success');
+            fetchStats();
+        }
+        textArea.value = '';
+    } catch (err) {
+        showToast('Failed to add text: ' + err.message, 'error');
+    }
+}
+
+// ============ ASK QUESTION ============
+function initQueryInput() {
+    const queryInput = document.getElementById('query');
+    if (queryInput) {
+        queryInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                ask();
+            }
+        });
+    }
+}
+
+async function ask() {
+    const queryInput = document.getElementById('query');
+    const messages = document.getElementById('messages');
+    const typing = document.getElementById('typing');
+
+    if (!queryInput || !messages) return;
+
+    const query = queryInput.value.trim();
+    if (!query) return;
+
+    // Remove welcome message
+    const welcome = document.getElementById('welcome');
+    if (welcome) welcome.remove();
 
     // Add user message
-    chatMessages.innerHTML += `
-        <div class="message user">
-            <div class="message-avatar">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
-                </svg>
-            </div>
-            <div class="message-content">${escapeHtml(query)}</div>
-        </div>
-    `;
+    addMessage('You', escapeHtml(query), 'user');
+    queryInput.value = '';
 
-    // Add loading message
-    const loadingId = 'loading-' + Date.now();
-    chatMessages.innerHTML += `
-        <div class="message assistant" id="${loadingId}">
-            <div class="message-avatar">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                    <path d="M2 17l10 5 10-5"/>
-                    <path d="M2 12l10 5 10-5"/>
-                </svg>
-            </div>
-            <div class="message-content">
-                <div class="loading-dots">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            </div>
-        </div>
-    `;
-
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-    queryObj.value = "";
+    // Show typing indicator
+    if (typing) typing.classList.add('active');
 
     try {
         const res = await fetch(`${API}/query`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ query })
         });
 
-        if (!res.ok) {
-            throw new Error(`Server returned ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
 
         const data = await res.json();
 
-        // Remove loading and add response
-        const loadingEl = document.getElementById(loadingId);
-        if (loadingEl) {
-            const answerHTML = marked.parse(data.answer);
-            const hasSources = data.citations && data.citations.length > 0;
+        // Hide typing
+        if (typing) typing.classList.remove('active');
 
-            loadingEl.querySelector('.message-content').innerHTML = `
-                ${answerHTML}
-                ${hasSources ? `
-                    <button class="sources-toggle" onclick="toggleSourcesPanel()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14,2 14,8 20,8"/>
-                        </svg>
-                        View ${data.citations.length} sources
-                    </button>
-                ` : ''}
-            `;
+        // Add AI response
+        addAIResponse(data.answer, data.citations);
 
-            // Update sources panel
-            if (hasSources) {
-                sourcesContainer.innerHTML = data.citations.map((c, i) => `
-                    <div class="source-card">
-                        <div class="source-header">
-                            <span class="source-name">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                </svg>
-                                ${c.source}
-                            </span>
-                            <div class="score-badges">
-                                <span class="score-badge similarity">${(c.similarity * 100).toFixed(0)}% sim</span>
-                                <span class="score-badge relevance">${(c.relevance * 100).toFixed(0)}% rel</span>
+    } catch (err) {
+        if (typing) typing.classList.remove('active');
+        addMessage('System', 'Error: ' + err.message, 'error');
+    }
+}
+
+function addMessage(label, content, type) {
+    const messages = document.getElementById('messages');
+    if (!messages) return;
+
+    const group = document.createElement('div');
+    group.className = 'message-group';
+
+    let contentClass = 'message-content';
+    if (type === 'user') contentClass += ' user-text';
+    if (type === 'error') contentClass += ' error-msg';
+
+    group.innerHTML = `
+        <div class="message-label">${label}</div>
+        <div class="${contentClass}">${content}</div>
+    `;
+    messages.appendChild(group);
+    messages.scrollTop = messages.scrollHeight;
+}
+
+function addAIResponse(answer, citations) {
+    const messages = document.getElementById('messages');
+    if (!messages) return;
+
+    const group = document.createElement('div');
+    group.className = 'message-group';
+
+    let sourcesHTML = '';
+    if (citations && citations.length > 0) {
+        sourcesHTML = `
+            <div class="sources-section">
+                <div class="sources-header">
+                    ${citations.length} Source${citations.length > 1 ? 's' : ''} Found
+                </div>
+                ${citations.map(c => `
+                    <div class="source-item">
+                        <div class="source-meta">
+                            <span class="source-name">${escapeHtml(c.source)}</span>
+                            <div class="source-scores">
+                                <span class="score-tag">${(c.similarity * 100).toFixed(0)}% sim</span>
+                                <span class="score-tag">${(c.relevance * 100).toFixed(0)}% rel</span>
                             </div>
                         </div>
                         <div class="source-text">${escapeHtml(c.text)}</div>
                     </div>
-                `).join('');
-            }
-        }
-
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-
-    } catch (err) {
-        const loadingEl = document.getElementById(loadingId);
-        if (loadingEl) {
-            loadingEl.querySelector('.message-content').innerHTML = `
-                <p style="color: #ef4444;">Error: ${err.message}</p>
-            `;
-        }
-        showToast("Failed to get response: " + err.message, "error");
+                `).join('')}
+            </div>
+        `;
     }
+
+    group.innerHTML = `
+        <div class="message-label">Assistant</div>
+        <div class="message-content">
+            <div class="ai-response">
+                <div class="response-body">${answer.replace(/\*/g, '')}</div>
+                ${sourcesHTML}
+            </div>
+        </div>
+    `;
+    messages.appendChild(group);
+    messages.scrollTop = messages.scrollHeight;
 }
 
+// ============ UTILITIES ============
 function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+}
+
+function showToast(message, type = 'info') {
+    // Remove existing toast
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `<span>${message}</span>`;
+
+    // Add styles if not present
+    if (!document.getElementById('toast-styles')) {
+        const style = document.createElement('style');
+        style.id = 'toast-styles';
+        style.textContent = `
+            .toast {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                padding: 14px 24px;
+                border-radius: 8px;
+                color: white;
+                font-size: 14px;
+                z-index: 9999;
+                animation: toastIn 0.3s ease;
+            }
+            .toast-success { background: #10b981; }
+            .toast-error { background: #ef4444; }
+            .toast-warning { background: #f59e0b; }
+            .toast-info { background: #3b82f6; }
+            @keyframes toastIn {
+                from { transform: translateY(20px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
 }
