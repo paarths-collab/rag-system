@@ -41,13 +41,11 @@
     padding: 0;
 }
 
-html {
-    background: var(--bg-dark);
-}
+
 
 body {
     font-family: 'Plus Jakarta Sans', sans-serif;
-    background: transparent;
+    background: var(--bg-dark);
     color: var(--text-main);
     line-height: 1.6;
     min-height: 100vh;
