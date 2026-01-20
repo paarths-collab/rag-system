@@ -27,4 +27,4 @@ EXPOSE 8000
 
 # Run main.py when the container launches
 # Use host 0.0.0.0 for external access
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
