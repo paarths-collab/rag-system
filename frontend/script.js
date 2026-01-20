@@ -1,13 +1,5 @@
 // Environment-aware API configuration
-const API = (() => {
-    // Check if we're in development (localhost)
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return 'http://localhost:8000';
-    }
-
-    // Production - use relative path for unified deployment
-    return '';
-})();
+const API = ''; // Relative path fits all same-origin deployments (localhost & production)
 
 let supabase = null;
 
