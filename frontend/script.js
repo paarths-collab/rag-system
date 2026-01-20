@@ -306,7 +306,6 @@ async function ingestFile() {
     // UI Feedback
     const fileBtn = document.getElementById("fileBtn");
     const fileName = document.getElementById("fileName");
-    const originalText = fileName.textContent;
 
     fileName.textContent = 'Uploading...';
     if (fileBtn) fileBtn.classList.add('attached');
@@ -327,19 +326,19 @@ async function ingestFile() {
             showToast(`Successfully ingested "${data.filename}" (${data.chunks} chunks)!`, "success");
             fetchDocumentStats();
         }
-
-        // Reset input
+    } catch (err) {
+        console.error("Upload error:", err);
+        try {
+            showToast("Error uploading file: " + err.message, "error");
+        } catch (e) {
+            // showToast itself failed, just log
+            console.error("Toast failed:", e);
+        }
+    } finally {
+        // ALWAYS reset UI no matter what
         fileInput.value = "";
         fileName.textContent = "Attach PDF or TXT";
         if (fileBtn) fileBtn.classList.remove('attached');
-
-    } catch (err) {
-        showToast("Error uploading file: " + err.message, "error");
-        fileName.textContent = "Error";
-        setTimeout(() => {
-            fileName.textContent = "Attach PDF or TXT";
-            if (fileBtn) fileBtn.classList.remove('attached');
-        }, 2000);
     }
 }
 
