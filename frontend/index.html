@@ -874,57 +874,9 @@
             </div>
         </main>
 
-        <script>
-            const API = 'http://localhost:8000';
-
-            // Init
-            document.addEventListener('DOMContentLoaded', () => {
-                checkStatus();
-                fetchStats();
-            });
-
-            // Enter to send
-            document.getElementById('query').addEventListener('keydown', e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    ask();
-                }
-            });
-
-            // File input change
-            document.getElementById('fileInput').addEventListener('change', async e => {
-                const file = e.target.files[0];
-                if (file) {
-                    document.getElementById('fileName').textContent = file.name;
-                    document.getElementById('fileBtn').classList.add('attached');
-                    await ingestFile(file);
-                }
-            });
-
-            // Toggle text input
-            function toggleTextInput() {
-                const area = document.getElementById('textInputArea');
-                const toggle = document.getElementById('textToggle');
-                area.classList.toggle('visible');
-                toggle.classList.toggle('active');
-            }
-
-            // Duplicate functions removed - see script.js
-
-            function removeWelcome() {
-                const welcome = document.getElementById('welcome');
-                if (welcome) welcome.remove();
-            }
-
-            function addMessage(label, content, type = 'normal') {
-                removeWelcome();
-                const group = document.createElement('div');
-                group.className = 'message-group';
-
-                let contentClass = 'message-content';
-                if (type === 'user') contentClass += ' user-text';
+        <script src="script.js"></script>
 
 
-    </body >
+    </body>
 
-</html >
+</html>
