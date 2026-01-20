@@ -136,7 +136,6 @@ def open_file(data: dict):
         else:  # Linux
             subprocess.call(["xdg-open", file_path])
         return {"status": "opened", "path": file_path}
-        return {"status": "opened", "path": file_path}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 # Middleware to disable browser caching for frontend files
