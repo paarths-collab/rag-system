@@ -909,30 +909,7 @@
                 toggle.classList.toggle('active');
             }
 
-            // Backend check
-            async function checkStatus() {
-                try {
-                    const res = await fetch(`${API}/health`);
-                    const data = await res.json();
-                    document.getElementById('statusDot').className = 'status-dot online';
-                    document.getElementById('statusText').textContent = 'Ready';
-                } catch {
-                    document.getElementById('statusDot').className = 'status-dot offline';
-                    document.getElementById('statusText').textContent = 'Offline';
-                }
-            }
-
-            // Fetch stats
-            async function fetchStats() {
-                try {
-                    const res = await fetch(`${API}/stats`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        document.getElementById('docCount').textContent = data.docs || 0;
-                        document.getElementById('chunkCount').textContent = data.chunks || 0;
-                    }
-                } catch { }
-            }
+            // Duplicate functions removed - see script.js
 
             function removeWelcome() {
                 const welcome = document.getElementById('welcome');

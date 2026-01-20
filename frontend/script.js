@@ -1,4 +1,14 @@
-const API = ""; // Relative path for unified deployment
+// Environment-aware API configuration
+const API = (() => {
+    // Check if we're in development (localhost)
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:8000';
+    }
+
+    // Production - use relative path for unified deployment
+    return '';
+})();
+
 let supabase = null;
 
 // Initialize app
@@ -30,16 +40,36 @@ async function checkHealth() {
     const text = document.getElementById('statusText');
 
     try {
-        const res = await fetch(`${API}/health`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+        const res = await fetch(`${API}/health`, {
+            signal: controller.signal,
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        clearTimeout(timeoutId);
+
         if (res.ok) {
             dot.className = 'status-dot online';
             text.textContent = 'Online';
+            console.log('Backend is online');
         } else {
-            throw new Error('Health check failed');
+            throw new Error(`HTTP ${res.status}`);
         }
     } catch (e) {
+        console.error('Health check failed:', e);
         dot.className = 'status-dot offline';
-        text.textContent = 'Offline';
+
+        if (e.name === 'AbortError') {
+            text.textContent = 'Timeout';
+        } else if (e.message.includes('Failed to fetch')) {
+            text.textContent = 'Connection Failed';
+        } else {
+            text.textContent = 'Offline';
+        }
     }
 }
 
