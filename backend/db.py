@@ -63,6 +63,41 @@ def store_chunk(text, source, chunk_index=0):
         "chunk_index": chunk_index
     }).execute()
 
+def embed_texts_batch(texts, batch_size=96):
+    """Embed multiple texts in batches (Cohere supports up to 96 per call)."""
+    all_embeddings = []
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i + batch_size]
+        response = co.embed(
+            texts=batch,
+            model="embed-english-v3.0",
+            input_type="search_document"
+        )
+        all_embeddings.extend(response.embeddings)
+    return all_embeddings
+
+def store_chunks_batch(chunks, source):
+    """Store multiple chunks with batch embedding (much faster)."""
+    if not chunks:
+        return
+    
+    # Batch embed all chunks at once
+    embeddings = embed_texts_batch(chunks)
+    
+    # Prepare all rows for batch insert
+    rows = [
+        {
+            "content": chunk,
+            "embedding": embedding,
+            "source": source,
+            "chunk_index": i
+        }
+        for i, (chunk, embedding) in enumerate(zip(chunks, embeddings))
+    ]
+    
+    # Batch insert to Supabase
+    supabase.table("documents").insert(rows).execute()
+
 def search_chunks(query_embedding, limit=20):
     """
     Search for similar chunks using vector similarity.

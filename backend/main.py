@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from chunking import chunk_text
-from db import store_chunk, hash_content, is_duplicate, register_document
+from db import store_chunk, store_chunks_batch, hash_content, is_duplicate, register_document
 from rag import answer_query
 from pdf_utils import extract_text_from_pdf
 import dotenv
@@ -61,10 +61,9 @@ def ingest(data: IngestRequest):
     if is_duplicate(content_hash):
         return {"status": "skipped", "reason": "duplicate", "chunks": 0}
     
-    # Chunk and store
+    # Chunk and store (batch for speed)
     chunks = chunk_text(data.text)
-    for i, chunk in enumerate(chunks):
-        store_chunk(chunk, data.source, chunk_index=i)
+    store_chunks_batch(chunks, data.source)
     
     # Register document
     register_document(content_hash, data.source, len(chunks))
@@ -90,10 +89,9 @@ async def ingest_file(file: UploadFile = File(...)):
     if is_duplicate(content_hash):
         return {"status": "skipped", "reason": "duplicate", "filename": filename, "chunks": 0}
     
-    # Chunk and store with index
+    # Chunk and store with batch (much faster)
     chunks = chunk_text(text)
-    for i, chunk in enumerate(chunks):
-        store_chunk(chunk, filename, chunk_index=i)
+    store_chunks_batch(chunks, filename)
     
     # Register document
     register_document(content_hash, filename, len(chunks))
