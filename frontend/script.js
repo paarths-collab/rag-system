@@ -13,6 +13,64 @@ document.addEventListener('DOMContentLoaded', async () => {
     setInterval(checkHealth, 30000); // Poll every 30 seconds
 });
 
+// Toast Notification
+function showToast(message, type = "info") {
+    // Remove existing toast
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <span>${message}</span>
+        <button onclick="this.parentElement.remove()">×</button>
+    `;
+
+    // Add styles if not present
+    if (!document.getElementById('toast-styles')) {
+        const style = document.createElement('style');
+        style.id = 'toast-styles';
+        style.textContent = `
+            .toast {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                border-radius: 8px;
+                color: white;
+                font-size: 14px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                z-index: 9999;
+                animation: slideIn 0.3s ease;
+                max-width: 400px;
+            }
+            .toast-success { background: #10b981; }
+            .toast-error { background: #ef4444; }
+            .toast-warning { background: #f59e0b; }
+            .toast-info { background: #3b82f6; }
+            .toast button {
+                background: none;
+                border: none;
+                color: white;
+                font-size: 18px;
+                cursor: pointer;
+                padding: 0;
+                margin-left: 8px;
+            }
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
+}
+
 
 
 
