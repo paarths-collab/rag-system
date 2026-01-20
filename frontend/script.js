@@ -6,6 +6,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     initNavigation();
     initDropZone();
     fetchDocumentStats();
+    checkHealth();
+    setInterval(checkHealth, 30000); // Poll every 30 seconds
 });
 
 
@@ -20,6 +22,25 @@ function initNavigation() {
             switchSection(section);
         });
     });
+}
+
+// Health Check
+async function checkHealth() {
+    const dot = document.getElementById('statusDot');
+    const text = document.getElementById('statusText');
+
+    try {
+        const res = await fetch(`${API}/health`);
+        if (res.ok) {
+            dot.className = 'status-dot online';
+            text.textContent = 'Online';
+        } else {
+            throw new Error('Health check failed');
+        }
+    } catch (e) {
+        dot.className = 'status-dot offline';
+        text.textContent = 'Offline';
+    }
 }
 
 function switchSection(section) {
