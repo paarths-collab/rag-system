@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-dotenv
+google-generativeai
+supabase
+tiktoken
+pymupdf
+python-multipart
+cohere
+numpy
